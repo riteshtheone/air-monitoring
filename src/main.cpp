@@ -6,7 +6,7 @@
 #define MQ135PIN 32
 #define DHTPIN 4
 
-MQ135 mq135_sensor(MQ135PIN, 184.03);
+MQ135 mq135_sensor(MQ135PIN);
 DHTesp dht;
 
 void setup() {

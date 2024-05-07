@@ -5,15 +5,16 @@
 #include "HTTPClient.h"
 
 #include "htmlPage.h"
+#include "secret.h"
 
 AsyncWebServer server(80);
 WebSocketsServer webSocket(81);
 
-const char *ssid = "iot32";
-const char *pass = "0123456789";
+const char *ssid = SSID;
+const char *pass = PASS;
 
-const String thingSpeakUrl = "http://api.thingspeak.com/update?api_key=J2BUZ8YLHKYJLK33";
-const String thingSpeakUrl2 = "http://api.thingspeak.com/update?api_key=O9RF8WQKBOMLZOHT";
+const String thingSpeakUrl = THINGSPEAKURL1;
+const String thingSpeakUrl2 = THINGSPEAKURL2;
 
 int humidity, temperature, air;
 float rzero;
