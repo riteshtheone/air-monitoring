@@ -1,6 +1,4 @@
 #include "header.h"
-#include "DHTesp.h"
-#include "MQ135.h"
 
 #define led_buzzer 2
 #define MQ135PIN 32
@@ -11,6 +9,9 @@ DHTesp dht;
 
 void setup() {
     Serial.begin(115200);
+    setCpuFrequencyMhz(240);
+    lcd.begin(16, 2);
+    delay(1000);
     dht.setup(DHTPIN, DHTesp::DHT11);
     delay(1000);
     pinMode(led_buzzer, OUTPUT);
@@ -18,15 +19,27 @@ void setup() {
     serverSetup();
     websocketSetup();
     mdnsSetup();
+    interruptSetup();
 }
 
 unsigned long previousMillis;
 unsigned long currentMillis;
 
+unsigned long previousMillisforSocket;
+unsigned long currentMillisforSocket;
+
 void loop() {
-    webSocket.loop();
+
+    currentMillisforSocket = millis();
+    if (currentMillisforSocket - previousMillisforSocket >= 25) {
+        previousMillisforSocket = currentMillisforSocket;
+        webSocket.loop();
+    }
+
     currentMillis = millis();
-    if (currentMillis - previousMillis >= 1000) { previousMillis = currentMillis;
+    if (currentMillis - previousMillis >= 1000) {
+        previousMillis = currentMillis;
+
         humidity = dht.getHumidity();
         temperature = dht.getTemperature();
         if (isnan(humidity) || isnan(temperature)) {
@@ -48,9 +61,8 @@ void loop() {
         json["air"] = (String) air + " ppm";
         json["status"] = airStatus;
         serializeJson(json, jsonString);
-//        Serial.println(jsonString);
         webSocket.broadcastTXT(jsonString);
     }
     thingSpeakUpdate();
-    delay(50);
+    printSensorDataOnLcd();
 }

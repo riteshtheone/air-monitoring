@@ -1,3 +1,6 @@
+#include "DHTesp.h"
+#include "MQ135.h"
+#include "LiquidCrystal.h"
 #include "ESPAsyncWebServer.h"
 #include "WebSocketsServer.h"
 #include "ArduinoJson.h"
@@ -7,12 +10,21 @@
 #include "htmlPage.h"
 #include "secret.h"
 
+String localIp;
+
+const int rs = 13, en = 14, d4 = 33, d5 = 25, d6 = 26, d7 = 27;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+const int switchPin = 21;
+volatile bool switchClicked = true;
+
 AsyncWebServer server(80);
 WebSocketsServer webSocket(81);
 
 const char *ssid = SSID;
 const char *pass = PASS;
 
+HTTPClient http;
 const String thingSpeakUrl = THINGSPEAKURL1;
 const String thingSpeakUrl2 = THINGSPEAKURL2;
 
@@ -35,8 +47,9 @@ void wifiSetup() {
         Serial.print('.');
         delay(500);
     }
+    localIp = WiFi.localIP().toString();
     Serial.println("\nConnected to wifi " + (String) ssid);
-    Serial.println("IP Address: " + WiFi.localIP().toString());
+    Serial.println("IP Address: " + localIp);
 }
 
 void mdnsSetup() {
@@ -102,8 +115,8 @@ void thingSpeakUpdate() {
 }
 
 void requestUpdate(String url) {
-    HTTPClient http;
-    String request = url + "&field1=" + String(temperature) + "&field2=" + String(humidity) + "&field3=" + String(air) + "&field4=" + String(rzero);
+    String request = url + "&field1=" + String(temperature) + "&field2=" + String(humidity) + "&field3=" + String(air) +
+                     "&field4=" + String(rzero);
     http.begin(request);
     int httpResponseCode = http.GET();
 
@@ -112,4 +125,39 @@ void requestUpdate(String url) {
     Serial.println(httpResponseCode == 200 ? jsonString : "BAD_REQUEST");
 
     http.end();
+}
+
+void switchInterrupt() {
+    switchClicked = !switchClicked;
+}
+
+String padStringTo16(String input) {
+    String paddedString = input;
+    const int targetLength = 16;
+    if (paddedString.length() < targetLength) {
+        int spacesToAdd = targetLength - paddedString.length();
+        for (int i = 0; i < spacesToAdd; i++) {
+            paddedString += " ";
+        }
+    }
+    return paddedString;
+}
+
+void printSensorDataOnLcd() {
+    if (switchClicked) {
+        lcd.setCursor(0, 0);
+        lcd.print(padStringTo16("Tem:" + String(temperature) + "C  Hum:" + String(humidity)));
+        lcd.setCursor(0, 1);
+        lcd.print(padStringTo16("Air: " + String(air) + " ppm"));
+    } else {
+        lcd.setCursor(0, 0);
+        lcd.print(padStringTo16("IP Address:-"));
+        lcd.setCursor(0, 1);
+        lcd.print(padStringTo16(localIp));
+    }
+}
+
+void interruptSetup() {
+    pinMode(switchPin, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(switchPin), switchInterrupt, FALLING);
 }
